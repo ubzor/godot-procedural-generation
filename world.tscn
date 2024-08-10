@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3 uid="uid://bum48veotxtbv"]
+
+[ext_resource type="PackedScene" uid="uid://iivq4mo8fs7y" path="res://terrain.tscn" id="1_5vdwi"]
+[ext_resource type="PackedScene" uid="uid://b8q2g6x4ft52a" path="res://camera.tscn" id="2_prack"]
+
+[node name="World" type="Node3D"]
+
+[node name="Terrain" parent="." instance=ExtResource("1_5vdwi")]
+
+[node name="Camera" parent="." instance=ExtResource("2_prack")]
+
+[connection signal="position_changed" from="Camera" to="Terrain" method="_on_camera_position_changed"]

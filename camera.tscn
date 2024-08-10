@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8q2g6x4ft52a"]
+
+[ext_resource type="Script" path="res://camera.gd" id="1_ds0og"]
+
+[node name="CameraTarget" type="Marker3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+script = ExtResource("1_ds0og")
+
+[node name="Camera3D" type="Camera3D" parent="."]
