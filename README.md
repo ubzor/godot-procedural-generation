@@ -10,8 +10,8 @@ for Godot v4.2.2
 + moving camera
 + create/destroy terrain meshes when camera moves
 + rotating camera
++ create terrain meshes in separated thread
 
 TODO:
-- create terrain meshes in separated thread
 - generate quadtree for current camera position
 ```
