@@ -13,5 +13,6 @@ for Godot v4.2.2
 + create terrain meshes in separated thread
 
 TODO:
+- generate terrain blocks starting from center (camera position)
 - generate quadtree for current camera position
 ```

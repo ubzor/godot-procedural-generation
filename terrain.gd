@@ -44,21 +44,21 @@ func remove_visible_terrain_mesh_instances(visible_terrain_mesh_instances_offset
 	
 	mutex.unlock()
 			
-func get_visible_terrain_mesh_instances_offsets(position: Vector3) -> PackedVector2Array:
+func get_visible_terrain_mesh_instances_offsets(camera_position: Vector3) -> PackedVector2Array:
 	var offsets = PackedVector2Array()
 	
 	for i in range(
-		int(position.z / float(mesh_size) - rendering_radius / mesh_size),
-		int(position.z / float(mesh_size) + rendering_radius / mesh_size + 1)
+		int(camera_position.z / float(mesh_size) - rendering_radius / mesh_size),
+		int(camera_position.z / float(mesh_size) + rendering_radius / mesh_size + 1)
 	):
 		for j in range(
-			int(position.x / float(mesh_size) - rendering_radius / mesh_size),
-			int(position.x / float(mesh_size) + rendering_radius / mesh_size + 1)
+			int(camera_position.x / float(mesh_size) - rendering_radius / mesh_size),
+			int(camera_position.x / float(mesh_size) + rendering_radius / mesh_size + 1)
 		):
 			# TODO: more precise radius formula
 			var distance_to_center_of_mesh_instance = Vector2(
-				position.x - j * mesh_size,
-				position.z - i * mesh_size
+				camera_position.x - j * mesh_size,
+				camera_position.z - i * mesh_size
 			).length()
 			
 			if distance_to_center_of_mesh_instance <= rendering_radius:
@@ -69,18 +69,22 @@ func get_visible_terrain_mesh_instances_offsets(position: Vector3) -> PackedVect
 func _ready():
 	init_noise()
 	
-func _process(delta: float):
-	if (terrain_blocks_offsets_to_add.size() and !terrain_blocks_offsets_rendering.size()):
+func _process(_delta: float):
+	if (
+		(!thread or !thread.is_alive())
+		and terrain_blocks_offsets_to_add.size()
+		and !terrain_blocks_offsets_rendering.size()
+	):
 		thread = Thread.new()
 		thread.start(_thread_function)
 		
 	remove_visible_terrain_mesh_instances(terrain_blocks_offsets_to_remove)
 		
-func _on_camera_position_changed(position):
+func _on_camera_position_changed(camera_position):
 	mutex.lock()
 	
 	var rendered_offsets: PackedVector2Array = terrain_blocks.keys()
-	var current_offsets = get_visible_terrain_mesh_instances_offsets(position)
+	var current_offsets = get_visible_terrain_mesh_instances_offsets(camera_position)
 	
 	var offsets_to_add = difference(current_offsets, rendered_offsets)
 	var offsets_to_remove = difference(rendered_offsets, current_offsets)
@@ -90,15 +94,13 @@ func _on_camera_position_changed(position):
 	
 	var new_offsets_to_remove = difference(offsets_to_remove, terrain_blocks_offsets_to_remove)
 	terrain_blocks_offsets_to_remove.append_array(new_offsets_to_remove)
-	
+
 	mutex.unlock()
 
 func _thread_function():
 	mutex.lock()
-	
 	var offset = terrain_blocks_offsets_to_add[0]
 	terrain_blocks_offsets_rendering.append(offset)
-	
 	mutex.unlock()
 	
 	var terrain_block = TerrainBlock.instantiate()
@@ -109,11 +111,9 @@ func _thread_function():
 	terrain_block.offset = offset
 	
 	mutex.lock()
-	
 	terrain_blocks[offset] = terrain_block
 	terrain_blocks_offsets_rendering = []
 	terrain_blocks_offsets_to_add.remove_at(0)
-	
 	mutex.unlock()
 	
 	call_deferred("add_child", terrain_block)

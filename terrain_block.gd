@@ -102,9 +102,12 @@ func _ready():
 	var mesh_instance = generate_terrain_mesh_instance()
 	add_child(mesh_instance)
 	
-	# TODO: remove glitch at 0:0 offset
+	visible = false
 	position.x = offset.x * mesh_size
 	position.z = offset.y * mesh_size
 	
-func _process(delta):
+	await get_tree().create_timer(0.01).timeout
+	visible = true
+	
+func _process(_delta: float):
 	pass
