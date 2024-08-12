@@ -10,7 +10,8 @@ var wireframe_shader_material: ShaderMaterial = preload("res://wireframe_shader_
 
 var noise: FastNoiseLite
 
-var thread: Thread
+var generating_terrain_blocks_thread: Thread
+var calculating_terrain_blocks_offsets_thread: Thread
 var mutex: Mutex = Mutex.new()
 
 var terrain_blocks: Dictionary = {}
@@ -65,22 +66,8 @@ func get_visible_terrain_mesh_instances_offsets(camera_position: Vector3) -> Pac
 				offsets.append(Vector2(j, i))
 	
 	return offsets
-
-func _ready():
-	init_noise()
 	
-func _process(_delta: float):
-	if (
-		(!thread or !thread.is_alive())
-		and terrain_blocks_offsets_to_add.size()
-		and !terrain_blocks_offsets_rendering.size()
-	):
-		thread = Thread.new()
-		thread.start(_thread_function)
-		
-	remove_visible_terrain_mesh_instances(terrain_blocks_offsets_to_remove)
-		
-func _on_camera_position_changed(camera_position):
+func calculate_terrain_blocks_offsets(camera_position):
 	mutex.lock()
 	
 	var rendered_offsets: PackedVector2Array = terrain_blocks.keys()
@@ -96,8 +83,8 @@ func _on_camera_position_changed(camera_position):
 	terrain_blocks_offsets_to_remove.append_array(new_offsets_to_remove)
 
 	mutex.unlock()
-
-func _thread_function():
+	
+func generate_terrain_blocks():
 	mutex.lock()
 	var offset = terrain_blocks_offsets_to_add[0]
 	terrain_blocks_offsets_rendering.append(offset)
@@ -117,6 +104,31 @@ func _thread_function():
 	mutex.unlock()
 	
 	call_deferred("add_child", terrain_block)
+
+func _ready():
+	init_noise()
+	
+func _process(_delta: float):
+	if (
+		(!generating_terrain_blocks_thread or !generating_terrain_blocks_thread.is_alive())
+		and terrain_blocks_offsets_to_add.size()
+		and !terrain_blocks_offsets_rendering.size()
+	):
+		generating_terrain_blocks_thread = Thread.new()
+		generating_terrain_blocks_thread.start(generate_terrain_blocks)
+		generating_terrain_blocks_thread.wait_to_finish()
+		
+	remove_visible_terrain_mesh_instances(terrain_blocks_offsets_to_remove)
+	
+	# Prints FPS in console
+	print(Engine.get_frames_per_second())
+		
+func _on_camera_position_changed(camera_position):
+	if !calculating_terrain_blocks_offsets_thread or !calculating_terrain_blocks_offsets_thread.is_alive():
+		calculating_terrain_blocks_offsets_thread = Thread.new()
+		calculating_terrain_blocks_offsets_thread.start(calculate_terrain_blocks_offsets.bind(camera_position))
+		calculating_terrain_blocks_offsets_thread.wait_to_finish()
 	
 func _exit_tree():
-	thread.wait_to_finish()
+	generating_terrain_blocks_thread.wait_to_finish()
+	calculating_terrain_blocks_offsets_thread.wait_to_finish()
