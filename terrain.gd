@@ -3,7 +3,7 @@ extends Node3D
 @export var mesh_size: int = 64
 @export var noise_frequency: float = 0.02
 @export var height_multiplier: float = 0.05
-@export var rendering_radius: float = 256.0
+@export var rendering_radius: float = 512.0
 
 var TerrainBlock = preload("res://terrain_block.tscn")
 var wireframe_shader_material: ShaderMaterial = preload("res://wireframe_shader_material.tres")
@@ -121,7 +121,7 @@ func _process(_delta: float):
 	remove_visible_terrain_mesh_instances(terrain_blocks_offsets_to_remove)
 	
 	# Prints FPS in console
-	print(Engine.get_frames_per_second())
+	#print(Engine.get_frames_per_second())
 		
 func _on_camera_position_changed(camera_position):
 	if !calculating_terrain_blocks_offsets_thread or !calculating_terrain_blocks_offsets_thread.is_alive():

@@ -7,6 +7,8 @@ extends Node3D
 @export var height_multiplier: float = 0.05
 @export var offset: Vector2
 
+var thread: Thread
+
 # Gets noise data for mesh
 func get_noise_data():
 	noise.offset = Vector3(mesh_size * offset.x, mesh_size * offset.y, 0)
@@ -96,11 +98,10 @@ func generate_terrain_mesh_instance():
 	var mesh_instance = MeshInstance3D.new()
 	mesh_instance.mesh = mesh
 	
-	return mesh_instance
-
-func _ready():
-	var mesh_instance = generate_terrain_mesh_instance()
-	add_child(mesh_instance)
+	call_deferred("add_terrain_mesh_to_scene", mesh_instance)
+	
+func add_terrain_mesh_to_scene(mesh_instance):
+	call_deferred("add_child", mesh_instance)
 	
 	visible = false
 	position.x = offset.x * mesh_size
@@ -108,6 +109,13 @@ func _ready():
 	
 	await get_tree().create_timer(0.01).timeout
 	visible = true
+
+func _ready():
+	thread = Thread.new()
+	thread.start(generate_terrain_mesh_instance)
 	
 func _process(_delta: float):
 	pass
+
+func _exit_tree():
+	thread.wait_to_finish()
