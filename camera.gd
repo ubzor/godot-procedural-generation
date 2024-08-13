@@ -15,23 +15,23 @@ var is_rotating: bool = false
 
 signal position_changed(position: Vector3)
 
-func get_forward_vector():
+func get_forward_vector() -> Vector3:
 	return Vector3(
 		-global_transform.basis.z.x,
 		0.0,
 		-global_transform.basis.z.z
 	).normalized()
 	
-func get_right_vector():
+func get_right_vector() -> Vector3:
 	return get_forward_vector().rotated(Vector3(0, 1, 0), -PI/2)
 
-func _ready():
+func _ready() -> void:
 	position = initial_position
 	rotation = initial_rotation
 	$Camera3D.position.z = initial_distance
 	position_changed.emit(position)
 
-func _process(delta: float):
+func _process(delta: float) -> void:
 	# Move
 	if Input.is_action_pressed("move_forward") \
 	or Input.is_action_pressed("move_back") \
@@ -66,7 +66,7 @@ func _process(delta: float):
 		else:
 			$Camera3D.position.z -= delta * zoom_sensitivity
 
-func _input(event):
+func _input(event) -> void:
 	if event is InputEventMouseButton:
 		match event.button_index:
 			# set camera is rotating
