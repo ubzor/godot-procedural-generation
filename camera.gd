@@ -1,8 +1,8 @@
 extends Marker3D
 
-@export var min_distance: float = 10.0
-@export var max_distance: float = 100.0
-@export var initial_distance: float = 20.0
+@export var min_distance: float = 50.0
+@export var max_distance: float = 200.0
+@export var initial_distance: float = 100.0
 @export var zoom_sensitivity: float = 200.0
 @export var move_speed: float = 1.0
 @export var rotation_sensitivity: float = 0.00004
@@ -38,15 +38,18 @@ func _process(delta: float) -> void:
 	or Input.is_action_pressed("move_left") \
 	or Input.is_action_pressed("move_right"):
 		var speed = $Camera3D.position.z * move_speed * delta
+		var movement_vector: Vector3 = Vector3(0, 0, 0)
 		
 		if Input.is_action_pressed("move_forward"):
-			position += get_forward_vector() * speed
+			movement_vector += get_forward_vector()
 		if Input.is_action_pressed("move_back"):
-			position -= get_forward_vector() * speed
+			movement_vector -= get_forward_vector()
 		if Input.is_action_pressed("move_left"):
-			position -= get_right_vector() * speed
+			movement_vector -= get_right_vector()
 		if Input.is_action_pressed("move_right"):
-			position += get_right_vector() * speed
+			movement_vector += get_right_vector()
+			
+		position += movement_vector.normalized() * speed
 	
 		position_changed.emit(position)
 	

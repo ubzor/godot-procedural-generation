@@ -12,12 +12,12 @@ for Godot v4.3
 + create/destroy terrain blocks when camera moves
 + create terrain blocks in separated thread
 + stable 60 FPS when flying around
++ unlink terrain block size from mesh vertices count
 ```
 
 TODO:
 
 ```
-- unlink terrain block size from mesh vertices count
 - generate terrain blocks starting from center (camera position)
 - generate quadtree for current camera position
 - debug overlay (fps, camera position, etc)

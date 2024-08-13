@@ -1,14 +1,11 @@
 extends Node3D
 
-@export var mesh_size: int = 64
-@export var noise_frequency: float = 0.02
-@export var height_multiplier: float = 0.05
-@export var rendering_radius: float = 256.0
+@export var terrain_block_size: float = 256.0
+@export var terrain_block_segments_count: int = 64
+@export var rendering_radius: float = 1024.0
 
 var TerrainBlock = preload("res://terrain_block.tscn")
 var wireframe_shader_material: ShaderMaterial = preload("res://wireframe_shader_material.tres")
-
-var noise: FastNoiseLite
 
 var generating_terrain_blocks_thread: Thread
 var calculating_terrain_blocks_offsets_thread: Thread
@@ -19,12 +16,6 @@ var terrain_blocks_offsets_to_add: PackedVector2Array = []
 var terrain_blocks_offsets_to_remove: PackedVector2Array = []
 var terrain_blocks_offsets_rendering: PackedVector2Array = []
 
-# Init Perlin noise generator
-func init_noise() -> void:
-	noise = FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise.frequency = noise_frequency
-
 # Return items present only in arr1
 func difference(arr1: Array, arr2: Array) -> Array:
 	var only_in_arr1 = []
@@ -34,10 +25,10 @@ func difference(arr1: Array, arr2: Array) -> Array:
 	return only_in_arr1
 		
 # Removes unused mesh instances
-func remove_visible_terrain_mesh_instances(visible_terrain_mesh_instances_offsets: PackedVector2Array) -> void:
+func remove_terrain_blocks(offsets: PackedVector2Array) -> void:
 	mutex.lock()
 	
-	for offset in visible_terrain_mesh_instances_offsets:
+	for offset in offsets:
 		terrain_blocks[offset].queue_free()
 		terrain_blocks.erase(offset)
 		
@@ -45,24 +36,24 @@ func remove_visible_terrain_mesh_instances(visible_terrain_mesh_instances_offset
 	
 	mutex.unlock()
 			
-func get_visible_terrain_mesh_instances_offsets(camera_position: Vector3) -> PackedVector2Array:
+func get_visible_terrain_blocks_offsets(camera_position: Vector3) -> PackedVector2Array:
 	var offsets = PackedVector2Array()
 	
 	for i in range(
-		int(camera_position.z / float(mesh_size) - rendering_radius / mesh_size),
-		int(camera_position.z / float(mesh_size) + rendering_radius / mesh_size + 1)
+		int(camera_position.z / float(terrain_block_size) - rendering_radius / terrain_block_size),
+		int(camera_position.z / float(terrain_block_size) + rendering_radius / terrain_block_size + 1)
 	):
 		for j in range(
-			int(camera_position.x / float(mesh_size) - rendering_radius / mesh_size),
-			int(camera_position.x / float(mesh_size) + rendering_radius / mesh_size + 1)
+			int(camera_position.x / float(terrain_block_size) - rendering_radius / terrain_block_size),
+			int(camera_position.x / float(terrain_block_size) + rendering_radius / terrain_block_size + 1)
 		):
 			# TODO: more precise radius formula
-			var distance_to_center_of_mesh_instance = Vector2(
-				camera_position.x - j * mesh_size,
-				camera_position.z - i * mesh_size
+			var distance_to_center_of_terrain_block = Vector2(
+				camera_position.x - j * terrain_block_size,
+				camera_position.z - i * terrain_block_size
 			).length()
 			
-			if distance_to_center_of_mesh_instance <= rendering_radius:
+			if distance_to_center_of_terrain_block <= rendering_radius:
 				offsets.append(Vector2(j, i))
 	
 	return offsets
@@ -71,7 +62,7 @@ func calculate_terrain_blocks_offsets(camera_position: Vector3) -> void:
 	mutex.lock()
 	
 	var rendered_offsets: PackedVector2Array = terrain_blocks.keys()
-	var current_offsets = get_visible_terrain_mesh_instances_offsets(camera_position)
+	var current_offsets = get_visible_terrain_blocks_offsets(camera_position)
 	
 	var offsets_to_add = difference(current_offsets, rendered_offsets)
 	var offsets_to_remove = difference(rendered_offsets, current_offsets)
@@ -91,10 +82,7 @@ func generate_terrain_blocks() -> void:
 	mutex.unlock()
 	
 	var terrain_block = TerrainBlock.instantiate()
-	terrain_block.noise = noise
 	terrain_block.wireframe_shader_material = wireframe_shader_material
-	terrain_block.mesh_size = mesh_size
-	terrain_block.height_multiplier = height_multiplier
 	terrain_block.offset = offset
 	
 	mutex.lock()
@@ -106,7 +94,7 @@ func generate_terrain_blocks() -> void:
 	call_deferred("add_child", terrain_block)
 
 func _ready() -> void:
-	init_noise()
+	pass
 	
 func _process(_delta: float) -> void:
 	if (
@@ -119,10 +107,7 @@ func _process(_delta: float) -> void:
 		generating_terrain_blocks_thread.wait_to_finish()
 	
 	if terrain_blocks_offsets_to_remove.size():
-		remove_visible_terrain_mesh_instances(terrain_blocks_offsets_to_remove)
-	
-	# Prints FPS in console
-	#print(Engine.get_frames_per_second())
+		remove_terrain_blocks(terrain_blocks_offsets_to_remove)
 		
 func _on_camera_position_changed(camera_position: Vector3) -> void:
 	if !calculating_terrain_blocks_offsets_thread or !calculating_terrain_blocks_offsets_thread.is_alive():

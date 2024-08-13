@@ -1,9 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://bum48veotxtbv"]
+[gd_scene load_steps=4 format=3 uid="uid://bum48veotxtbv"]
 
 [ext_resource type="PackedScene" uid="uid://iivq4mo8fs7y" path="res://terrain.tscn" id="1_5vdwi"]
+[ext_resource type="Script" path="res://world.gd" id="1_o7tl3"]
 [ext_resource type="PackedScene" uid="uid://b8q2g6x4ft52a" path="res://camera.tscn" id="2_prack"]
 
 [node name="World" type="Node3D"]
+script = ExtResource("1_o7tl3")
 
 [node name="Terrain" parent="." instance=ExtResource("1_5vdwi")]
 

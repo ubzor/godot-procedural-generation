@@ -1,18 +1,24 @@
 extends Node3D
 
-@export var noise: FastNoiseLite
 @export var wireframe_shader_material: ShaderMaterial
 
-@export var mesh_size: int = 64
 @export var height_multiplier: float = 0.05
+@export var noise_frequency: float = 0.02
 @export var offset: Vector2
 
+var size: float
+var segments_count: int
+
+var noise: FastNoiseLite = FastNoiseLite.new()
 var thread: Thread
 
 # Gets noise data for mesh
 func get_noise_data() -> PackedByteArray:
-	noise.offset = Vector3(mesh_size * offset.x, mesh_size * offset.y, 0)
-	return noise.get_image(mesh_size + 1, mesh_size + 1, false, false, false).data.data
+	noise.noise_type = FastNoiseLite.TYPE_PERLIN
+	noise.frequency = 0.02
+	noise.offset = Vector3(segments_count * offset.x, segments_count * offset.y, 0)
+	
+	return noise.get_image(segments_count + 1, segments_count + 1, false, false, false).data.data
 	
 # Finds the surface normal given 3 vertices.
 func get_triangle_normal(a: Vector3, b: Vector3, c: Vector3) -> Vector3:
@@ -25,7 +31,7 @@ func generate_terrain_mesh() -> ArrayMesh:
 	surface_array.resize(Mesh.ARRAY_MAX)
 	
 	var verts_normals: Array[PackedVector3Array] = []
-	verts_normals.resize((mesh_size + 1) ** 2)
+	verts_normals.resize((segments_count + 1) ** 2)
 	
 	var verts = PackedVector3Array()
 	var uvs = PackedVector2Array()
@@ -36,18 +42,18 @@ func generate_terrain_mesh() -> ArrayMesh:
 	
 	# TODO: refactor to separated functions
 	
-	for i in range(mesh_size + 1):
-		for j in range(mesh_size + 1):
-			verts.append(Vector3(j, noise_data[i * (mesh_size + 1) + j] * height_multiplier, i))
-			uvs.append(Vector2(float(j) / mesh_size, float(i) / mesh_size))
+	for i in range(segments_count + 1):
+		for j in range(segments_count + 1):
+			verts.append(Vector3(j, noise_data[i * (segments_count + 1) + j] * height_multiplier, i))
+			uvs.append(Vector2(float(j) / segments_count, float(i) / segments_count))
 			
-	for i in range(mesh_size):
-		for j in range(mesh_size):
+	for i in range(segments_count):
+		for j in range(segments_count):
 			var verts_indexes = PackedInt32Array([
-				i * (mesh_size + 1) + j, # top left
-				i * (mesh_size + 1) + j + 1, # top right
-				(i + 1) * (mesh_size + 1) + j, # bottom left
-				(i + 1) * (mesh_size + 1) + j + 1 # bottom right
+				i * (segments_count + 1) + j, # top left
+				i * (segments_count + 1) + j + 1, # top right
+				(i + 1) * (segments_count + 1) + j, # bottom left
+				(i + 1) * (segments_count + 1) + j + 1 # bottom right
 			])
 			
 			var normal1 = get_triangle_normal(
@@ -75,7 +81,7 @@ func generate_terrain_mesh() -> ArrayMesh:
 				verts_indexes[0], verts_indexes[3],	verts_indexes[2]
 			])
 			
-	for i in range((mesh_size + 1) ** 2):
+	for i in range((segments_count + 1) ** 2):
 		var normal = Vector3(0, 0, 0)
 		for j in range(verts_normals[i].size()):
 			normal += verts_normals[i][j]
@@ -104,13 +110,17 @@ func add_terrain_mesh_to_scene(mesh_instance) -> void:
 	call_deferred("add_child", mesh_instance)
 	
 	visible = false
-	position.x = offset.x * mesh_size
-	position.z = offset.y * mesh_size
+	position.x = offset.x * size
+	position.z = offset.y * size
+	scale = Vector3(1, 1, 1) * (size / float(segments_count))
 	
 	await get_tree().create_timer(0.01).timeout
 	visible = true
 
 func _ready() -> void:
+	size = get_parent().terrain_block_size
+	segments_count = get_parent().terrain_block_segments_count
+	
 	thread = Thread.new()
 	thread.start(generate_terrain_mesh_instance)
 	
